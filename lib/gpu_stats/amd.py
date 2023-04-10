@@ -9,7 +9,7 @@ from typing import List, Optional
 
 import plaidml
 
-from ._base import GPUStats, _EXCLUDE_DEVICES
+from ._base import _GPUStats, _EXCLUDE_DEVICES
 
 
 _PLAIDML_INITIALIZED: bool = False
@@ -30,17 +30,17 @@ def setup_plaidml(log_level: str, exclude_devices: List[int]) -> None:
     """
     logger = logging.getLogger(__name__)  # pylint:disable=invalid-name
     logger.info("Setting up for PlaidML")
-    logger.verbose("Setting Keras Backend to PlaidML")
+    logger.verbose("Setting Keras Backend to PlaidML")  # type:ignore
     # Add explicitly excluded devices to list. The contents are checked in AMDstats
     if exclude_devices:
         _EXCLUDE_DEVICES.extend(int(idx) for idx in exclude_devices)
     os.environ["KERAS_BACKEND"] = "plaidml.keras.backend"
-    stats = AMDStats(log_level)
+    stats = AMDStats(log_level=log_level)
     logger.info("Using GPU(s): %s", [stats.names[i] for i in stats.active_devices])
     logger.info("Successfully set up for PlaidML")
 
 
-class AMDStats(GPUStats):
+class AMDStats(_GPUStats):
     """ Holds information and statistics about AMD GPU(s) available on the currently
     running system.
 
@@ -70,10 +70,10 @@ class AMDStats(GPUStats):
         self._log_level: str = log_level.upper()
 
         # Following attributes are set in :func:``_initialize``
-        self._ctx: Optional(plaidml.Context) = None
-        self._supported_devices: Optional(List[plaidml._DeviceConfig]) = None
-        self._all_devices: Optional(List[plaidml._DeviceConfig]) = None
-        self._device_details: Optional(List[dict]) = None
+        self._ctx: Optional[plaidml.Context] = None
+        self._supported_devices: List[plaidml._DeviceConfig] = []
+        self._all_devices: List[plaidml._DeviceConfig] = []
+        self._device_details: List[dict] = []
 
         super().__init__(log=log)
 
@@ -85,7 +85,7 @@ class AMDStats(GPUStats):
     @property
     def _plaid_ids(self) -> List[str]:
         """ list: The device identification for each GPU device that PlaidML has discovered. """
-        return [device.id.decode("utf-8") for device in self._all_devices]
+        return [device.id.decode("utf-8", errors="replace") for device in self._all_devices]
 
     @property
     def _experimental_indices(self) -> List[int]:
@@ -104,9 +104,9 @@ class AMDStats(GPUStats):
         return retval
 
     @property
-    def _all_vram(self) -> List[float]:
+    def _all_vram(self) -> List[int]:
         """ list: The VRAM of each GPU device that PlaidML has discovered. """
-        return [int(device.get("globalMemSize", 0)) / (1024 * 1024)
+        return [int(int(device.get("globalMemSize", 0)) / (1024 * 1024))
                 for device in self._device_details]
 
     @property
@@ -159,9 +159,10 @@ class AMDStats(GPUStats):
         self._log("debug", "Setting PlaidML Default Logger")
 
         plaidml.DEFAULT_LOG_HANDLER = logging.getLogger("plaidml_root")
-        plaidml.DEFAULT_LOG_HANDLER.propagate = 0
+        plaidml.DEFAULT_LOG_HANDLER.propagate = False
 
         numeric_level = getattr(logging, self._log_level, None)
+        assert numeric_level is not None
         if numeric_level < 10:  # DEBUG Logging
             plaidml._internal_set_vlog(1)  # pylint:disable=protected-access
         elif numeric_level < 20:  # INFO Logging
@@ -182,12 +183,13 @@ class AMDStats(GPUStats):
 
         plaidml.settings.experimental = False
         devices = plaidml.devices(self._ctx, limit=100, return_all=True)[0]
-
         plaidml.settings.experimental = experimental_setting
 
         supported = [d for d in devices
                      if d.details
-                     and json.loads(d.details.decode("utf-8")).get("type", "cpu").lower() == "gpu"]
+                     and json.loads(
+                        d.details.decode("utf-8",
+                                         errors="replace")).get("type", "cpu").lower() == "gpu"]
 
         self._log("debug", f"Obtained supported devices: {supported}")
         return supported
@@ -201,22 +203,50 @@ class AMDStats(GPUStats):
             The :class:`pladml._DeviceConfig` objects for GPUs that PlaidML has discovered.
         """
         experimental_setting = plaidml.settings.experimental
-
         plaidml.settings.experimental = True
         devices = plaidml.devices(self._ctx, limit=100, return_all=True)[0]
-
         plaidml.settings.experimental = experimental_setting
 
         experi = [d for d in devices
                   if d.details
-                  and json.loads(d.details.decode("utf-8")).get("type", "cpu").lower() == "gpu"]
+                  and json.loads(
+                    d.details.decode("utf-8",
+                                     errors="replace")).get("type", "cpu").lower() == "gpu"]
 
         self._log("debug", f"Obtained experimental Devices: {experi}")
 
         all_devices = experi + self._supported_devices
+        all_devices = all_devices if all_devices else self._get_fallback_devices()  # Use CPU
 
         self._log("debug", f"Obtained all Devices: {all_devices}")
         return all_devices
+
+    def _get_fallback_devices(self) -> List[plaidml._DeviceConfig]:
+        """ Called if a GPU has not been discovered. Return any devices we can run on.
+
+        Returns
+        -------
+        list:
+            The :class:`pladml._DeviceConfig` fallaback objects that PlaidML has discovered.
+        """
+        # Try get a supported device
+        experimental_setting = plaidml.settings.experimental
+        plaidml.settings.experimental = False
+        devices = plaidml.devices(self._ctx, limit=100, return_all=True)[0]
+
+        # Try get any device
+        if not devices:
+            plaidml.settings.experimental = True
+            devices = plaidml.devices(self._ctx, limit=100, return_all=True)[0]
+
+        plaidml.settings.experimental = experimental_setting
+
+        if not devices:
+            raise RuntimeError("No valid devices could be found for plaidML.")
+
+        self._log("warning", f"PlaidML could not find a GPU. Falling back to: "
+                  f"{[d.id.decode('utf-8', errors='replace') for d in devices]}")
+        return devices
 
     def _get_device_details(self) -> List[dict]:
         """ Obtain the device details for all connected AMD GPUS.
@@ -226,8 +256,14 @@ class AMDStats(GPUStats):
         list
             The `dict` device detail for all GPUs that PlaidML has discovered.
         """
-        details = [json.loads(d.details.decode("utf-8"))
-                   for d in self._all_devices if d.details]
+        details = []
+        for dev in self._all_devices:
+            if dev.details:
+                details.append(json.loads(dev.details.decode("utf-8", errors="replace")))
+            else:
+                details.append(dict(vendor=dev.id.decode("utf-8", errors="replace"),
+                                    name=dev.description.decode("utf-8", errors="replace"),
+                                    globalMemSize=4 * 1024 * 1024 * 1024))  # 4GB dummy ram
         self._log("debug", f"Obtained Device details: {details}")
         return details
 
@@ -253,11 +289,11 @@ class AMDStats(GPUStats):
             self._log("error", "Please run `plaidml-setup` to set up your GPU.")
             sys.exit(1)
 
-        max_vram = max([self._all_vram[idx] for idx in indices])
+        max_vram = max(self._all_vram[idx] for idx in indices)
         self._log("debug", f"Max VRAM: {max_vram}")
 
-        gpu_idx = min([idx for idx, vram in enumerate(self._all_vram)
-                       if vram == max_vram and idx in indices])
+        gpu_idx = min(idx for idx, vram in enumerate(self._all_vram)
+                      if vram == max_vram and idx in indices)
         self._log("debug", f"GPU IDX: {gpu_idx}")
 
         selected_gpu = self._plaid_ids[gpu_idx]
@@ -313,8 +349,8 @@ class AMDStats(GPUStats):
         str
             The current AMD GPU driver versions
         """
-        drivers = [device.get("driverVersion", "No Driver Found")
-                   for device in self._device_details]
+        drivers = "|".join([device.get("driverVersion", "No Driver Found")
+                            for device in self._device_details])
         self._log("debug", f"GPU Drivers: {drivers}")
         return drivers
 
@@ -330,7 +366,7 @@ class AMDStats(GPUStats):
         self._log("debug", f"GPU Devices: {names}")
         return names
 
-    def _get_vram(self) -> List[float]:
+    def _get_vram(self) -> List[int]:
         """ Obtain the VRAM in Megabytes for each connected AMD GPU as identified in
         :attr:`_handles`.
 
@@ -343,7 +379,7 @@ class AMDStats(GPUStats):
         self._log("debug", f"GPU VRAM: {vram}")
         return vram
 
-    def _get_free_vram(self) -> List[float]:
+    def _get_free_vram(self) -> List[int]:
         """ Obtain the amount of VRAM that is available, in Megabytes, for each connected AMD
         GPU.
 

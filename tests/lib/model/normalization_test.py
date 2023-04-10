@@ -86,7 +86,7 @@ def test_adain_normalization(center, scale):
     model = models.Model(inputs, norm(inputs))
     data = [10 * np.random.random(shape) for shape in shapes]
 
-    actual_output = model.predict(data)
+    actual_output = model.predict(data, verbose=0)
     actual_output_shape = actual_output.shape
 
     for expected_dim, actual_dim in zip(expected_output_shape,
@@ -104,7 +104,7 @@ def test_layer_normalization(center, scale):
 
 
 _PARAMS = ["partial", "bias"]
-_VALUES = [(0.0, False), (0.25, False), (0.5, True), (0.75, False), (1.0, True)]
+_VALUES = [(0.0, False), (0.25, False), (0.5, True), (0.75, False), (1.0, True)]  # type:ignore
 _IDS = [f"partial={v[0]}|bias={v[1]}[{get_backend().upper()}]" for v in _VALUES]
 
 

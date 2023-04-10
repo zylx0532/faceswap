@@ -39,16 +39,21 @@
                    the value saved in the state file with the updated value in config. If not
                    provided this will default to True.
 """
+from typing import List
+
 from lib.utils import get_backend
 
-_HELPTEXT = ("Phaze-A Model by TorzDF, with thanks to BirbFakes.\n"
-             "Allows for the experimentation of various standard Networks as the encoder and "
-             "takes inspiration from Nvidia's StyleGAN for the Decoder. It is highly recommended "
-             "to research to understand the parameters better.")
+_HELPTEXT: str = (
+    "Phaze-A Model by TorzDF, with thanks to BirbFakes.\n"
+    "Allows for the experimentation of various standard Networks as the encoder and takes "
+    "inspiration from Nvidia's StyleGAN for the Decoder. It is highly recommended to research to "
+    "understand the parameters better.")
 
-_ENCODERS = ["densenet121", "densenet169", "densenet201", "inception_resnet_v2", "inception_v3",
-             "mobilenet", "mobilenet_v2", "nasnet_large", "nasnet_mobile", "resnet50", "vgg16",
-             "vgg19", "xception", "fs_original"]
+_ENCODERS: List[str] = [
+    "densenet121", "densenet169", "densenet201", "inception_resnet_v2", "inception_v3",
+    "mobilenet", "mobilenet_v2", "nasnet_large", "nasnet_mobile", "resnet50", "vgg16", "vgg19",
+    "xception", "fs_original"]
+
 if get_backend() != "amd":
     _ENCODERS.extend(["efficientnet_b0", "efficientnet_b1", "efficientnet_b2", "efficientnet_b3",
                       "efficientnet_b4", "efficientnet_b5", "efficientnet_b6", "efficientnet_b7",
@@ -67,7 +72,7 @@ _DEFAULTS = dict(
              "BE AWARE Larger resolution will dramatically increase VRAM requirements.",
         datatype=int,
         rounding=64,
-        min_max=(64, 1024),
+        min_max=(64, 2048),
         group="general",
         fixed=True),
     shared_fc=dict(
@@ -137,47 +142,47 @@ _DEFAULTS = dict(
         info="The encoder architecture to use. See the relevant config sections for specific "
              "architecture tweaking.\nNB: For keras based pre-built models, the global "
              "initializers and padding options will be ignored for the selected encoder."
-             "\n\tdensenet: (32px -224px). Ref: Densely Connected Convolutional Networks (2016): "
-             "https://arxiv.org/abs/1608.06993?source=post_page"
-             "\n\tefficientnet: [Tensorflow 2.3+ only] EfficientNet has numerous variants (B0 - "
+             "\n\n\tdensenet: (32px -224px). Ref: Densely Connected Convolutional Networks "
+             "(2016): https://arxiv.org/abs/1608.06993?source=post_page"
+             "\n\n\tefficientnet: [Tensorflow 2.3+ only] EfficientNet has numerous variants (B0 - "
              "B8) that increases the model width, depth and dimensional space at each step. The "
              "minimum input resolution is 32px for all variants. The maximum input resolution for "
              "each variant is: b0: 224px, b1: 240px, b2: 260px, b3: 300px, b4: 380px, b5: 456px, "
              "b6: 528px, b7 600px. Ref: Rethinking Model Scaling for Convolutional Neural "
              "Networks (2020): https://arxiv.org/abs/1905.11946"
-             "\n\tefficientnet_v2: [Tensorflow 2.8+ only] EfficientNetV2 is the follow up to "
+             "\n\n\tefficientnet_v2: [Tensorflow 2.8+ only] EfficientNetV2 is the follow up to "
              "efficientnet. It has numerous variants (B0 - B3 and Small, Medium and Large) that "
              "increases the model width, depth and dimensional space at each step. The minimum "
              "input resolution is 32px for all variants. The maximum input resolution for each "
              "variant is: b0: 224px, b1: 240px, b2: 260px, b3: 300px, s: 384px, m: 480px, l: "
              "480px. Ref: EfficientNetV2: Smaller Models and Faster Training (2021): "
              "https://arxiv.org/abs/2104.00298"
-             "\n\tfs_original: (32px - 160px). A configurable variant of the original facewap "
+             "\n\n\tfs_original: (32px - 1024px). A configurable variant of the original facewap "
              "encoder. ImageNet weights cannot be loaded for this model. Additional parameters "
              "can be configured with the 'fs_enc' options. A version of this encoder is used in "
              "the following models: Original, Original (lowmem), Dfaker, DFL-H128, DFL-SAE, IAE, "
              "Lightweight."
-             "\n\tinception_resnet_v2: (75px - 299px). Ref: Inception-ResNet and the Impact of "
+             "\n\n\tinception_resnet_v2: (75px - 299px). Ref: Inception-ResNet and the Impact of "
              "Residual Connections on Learning (2016): https://arxiv.org/abs/1602.07261"
-             "\n\tinceptionV3: (75px - 299px). Ref: Rethinking the Inception Architecture for "
+             "\n\n\tinceptionV3: (75px - 299px). Ref: Rethinking the Inception Architecture for "
              "Computer Vision (2015): https://arxiv.org/abs/1512.00567"
-             "\n\tmobilenet: (32px - 224px). Additional MobileNet parameters can be set with the "
-             "'mobilenet' options. Ref: MobileNets: Efficient Convolutional Neural Networks for "
-             "Mobile Vision Applications (2017): https://arxiv.org/abs/1704.04861"
-             "\n\tmobilenet_v2: (32px - 224px). Additional MobileNet parameters can be set with "
+             "\n\n\tmobilenet: (32px - 224px). Additional MobileNet parameters can be set with "
+             "the 'mobilenet' options. Ref: MobileNets: Efficient Convolutional Neural Networks "
+             "for Mobile Vision Applications (2017): https://arxiv.org/abs/1704.04861"
+             "\n\n\tmobilenet_v2: (32px - 224px). Additional MobileNet parameters can be set with "
              "the 'mobilenet' options. Ref: MobileNetV2: Inverted Residuals and Linear "
              "Bottlenecks (2018): https://arxiv.org/abs/1801.04381"
-             "\n\tmobilenet_v3: (32px - 224px). Additional MobileNet parameters can be set with "
+             "\n\n\tmobilenet_v3: (32px - 224px). Additional MobileNet parameters can be set with "
              "the 'mobilenet' options. Ref: Searching for MobileNetV3 (2019): "
              "https://arxiv.org/pdf/1905.02244.pdf"
-             "\n\tnasnet: (32px - 331px (large) or 224px (mobile)). Ref: Learning Transferable "
+             "\n\n\tnasnet: (32px - 331px (large) or 224px (mobile)). Ref: Learning Transferable "
              "Architectures for Scalable Image Recognition (2017): "
              "https://arxiv.org/abs/1707.07012"
-             "\n\tresnet: (32px - 224px). Deep Residual Learning for Image Recognition (2015): "
+             "\n\n\tresnet: (32px - 224px). Deep Residual Learning for Image Recognition (2015): "
              "https://arxiv.org/abs/1512.03385"
-             "\n\tvgg: (32px - 224px). Very Deep Convolutional Networks for Large-Scale Image "
+             "\n\n\tvgg: (32px - 224px). Very Deep Convolutional Networks for Large-Scale Image "
              "Recognition (2014): https://arxiv.org/abs/1409.1556"
-             "\n\txception: (71px - 229px). Ref: Deep Learning with Depthwise Separable "
+             "\n\n\txception: (71px - 229px). Ref: Deep Learning with Depthwise Separable "
              "Convolutions (2017): https://arxiv.org/abs/1409.1556.\n",
         datatype=str,
         choices=_ENCODERS,
@@ -185,12 +190,13 @@ _DEFAULTS = dict(
         group="encoder",
         fixed=True),
     enc_scaling=dict(
-        default=40,
+        default=7,
         info="Input scaling for the encoder. Some of the encoders have large input sizes, which "
              "often are not helpful for Faceswap. This setting scales the dimensional space that "
              "the encoder works in. For example an encoder with a maximum input size of 224px "
              "will be input an image of 112px at 50%% scaling. See the Architecture tooltip for "
-             "the minimum and maximum sizes for each encoder.",
+             "the minimum and maximum sizes for each encoder. NB: The input size will be rounded "
+             "down to the nearest 16 pixels.",
         datatype=int,
         min_max=(0, 100),
         rounding=1,
@@ -259,7 +265,7 @@ _DEFAULTS = dict(
              "intermediate layer.",
         datatype=int,
         rounding=1,
-        min_max=(1, 16),
+        min_max=(0, 16),
         group="hidden layers",
         fixed=True),
     fc_min_filters=dict(
@@ -279,7 +285,7 @@ _DEFAULTS = dict(
              "connected layer is: fc_min_filters x fc_dimensions x fc_dimensions.\nNB: This value "
              "may be scaled down, depending on output resolution.",
         datatype=int,
-        rounding=128,
+        rounding=64,
         min_max=(128, 5120),
         group="hidden layers",
         fixed=True),
@@ -290,7 +296,7 @@ _DEFAULTS = dict(
              "layer will be: fc_dimensions x fc_dimensions x fc_max_filters.",
         datatype=int,
         rounding=1,
-        min_max=(3, 16),
+        min_max=(1, 16),
         group="hidden layers",
         fixed=True),
     fc_filter_slope=dict(
@@ -357,7 +363,7 @@ _DEFAULTS = dict(
              "down, depending on output resolution. Also note, that this figure will dictate the "
              "number of filters used for the G-Block, if selected.",
         datatype=int,
-        rounding=128,
+        rounding=64,
         min_max=(128, 5120),
         group="hidden layers",
         fixed=True),
@@ -376,7 +382,7 @@ _DEFAULTS = dict(
         default=512,
         info="The number of nodes to use for the initial G-Block shared fully connected layer.",
         datatype=int,
-        rounding=128,
+        rounding=64,
         min_max=(128, 5120),
         group="g-block hidden layers",
         fixed=True),
@@ -384,7 +390,7 @@ _DEFAULTS = dict(
         default=512,
         info="The number of nodes to use for the final G-Block shared fully connected layer.",
         datatype=int,
-        rounding=128,
+        rounding=64,
         min_max=(128, 5120),
         group="g-block hidden layers",
         fixed=True),
@@ -427,10 +433,25 @@ _DEFAULTS = dict(
              "\n\tupscale_fast - Developed by Andenixa. Focusses on speed to upscale, but "
              "requires more VRAM."
              "\n\tupscale_hybrid - Developed by Andenixa. Uses a combination of PixelShuffler and "
-             "Upsampling2D to upscale, saving about 1/3rd of VRAM of the heaviest methods.",
+             "Upsampling2D to upscale, saving about 1/3rd of VRAM of the heaviest methods."
+             "\n\tupscale_dny - An alternative upscale implementation using Upsampling2D to "
+             "upsale.",
         datatype=str,
-        choices=["subpixel", "resize_images", "upscale_fast", "upscale_hybrid"],
+        choices=["subpixel", "resize_images", "upscale_fast", "upscale_hybrid", "upscale_dny"],
         gui_radio=True,
+        group="decoder",
+        fixed=True),
+    dec_upscales_in_fc=dict(
+        default=0,
+        min_max=(0, 6),
+        rounding=1,
+        info="It is possible to place some of the upscales at the end of the fully connected "
+        "model. For models with split decoders, but a shared fully connected layer, this would "
+        "have the effect of saving some VRAM but possibly at the cost of introducing artefacts. "
+        "For models with a shared decoder but split fully connected layers, this would have the "
+        "effect of increasing VRAM usage by processing some of the upscales for each side rather "
+        "than together.",
+        datatype=int,
         group="decoder",
         fixed=True),
     dec_norm=dict(
@@ -453,8 +474,8 @@ _DEFAULTS = dict(
         info="The minimum number of filters to use in decoder upscalers (i.e. the number of "
              "filters to use for the final upscale layer).",
         datatype=int,
-        min_max=(64, 512),
-        rounding=64,
+        min_max=(16, 512),
+        rounding=16,
         group="decoder",
         fixed=True),
     dec_max_filters=dict(
@@ -463,18 +484,41 @@ _DEFAULTS = dict(
              "filters to use for the first upscale layer).",
         datatype=int,
         min_max=(256, 5120),
-        rounding=128,
+        rounding=64,
         group="decoder",
         fixed=True),
+    dec_slope_mode=dict(
+        default="full",
+        info="Alters the action of the filter slope.\n"
+             "\n\tfull: The number of filters at each upscale layer will reduce from the chosen "
+             "max_filters at the first layer to the chosen min_filters at the last layer as "
+             "dictated by the dec_filter_slope."
+             "\n\tcap_max: The filters will decline at a fixed rate from each upscale to the next "
+             "based on the filter_slope setting. If there are more upscales than filters, "
+             "then the earliest upscales will be capped at the max_filter value until the filters "
+             "can reduce to the min_filters value at the final upscale. (EG: 512 -> 512 -> 512 -> "
+             "256 -> 128 -> 64)."
+             "\n\tcap_min: The filters will decline at a fixed rate from each upscale to the next "
+             "based on the filter_slope setting. If there are more upscales than filters, then "
+             "the earliest upscales will drop their filters until the min_filter value is met and "
+             "repeat the min_filter value for the remaining upscales. (EG: 512 -> 256 -> 128 -> "
+             "64 -> 64 -> 64).",
+        choices=["full", "cap_max", "cap_min"],
+        group="decoder",
+        fixed=True,
+        gui_radio=True),
     dec_filter_slope=dict(
         default=-0.45,
-        info="The rate that the filters reduce at each upscale layer. EG:\n"
-             "Negative numbers will drop the number of filters quicker at first and slow down "
-             "each upscale.\n"
-             "Positive numbers will drop the number of filters slower at first but then speed "
-             "up each upscale.\n"
-             "0.0 - This will reduce at a linear rate (i.e. the same number of filters will be "
-             "reduced at each upscale).",
+        info="The rate that the filters reduce at each upscale layer.\n"
+             "\n\tFull Slope Mode: Negative numbers will drop the number of filters quicker at "
+             "first and slow down each upscale. Positive numbers will drop the number of filters "
+             "slower at first but then speed up each upscale. A value of 0.0 will reduce at a "
+             "linear rate (i.e. the same number of filters will be reduced at each upscale).\n"
+             "\n\tCap Min/Max Slope Mode: Only positive values will work here. Negative values "
+             "will automatically be converted to their positive counterpart. A value of 0.5 will "
+             "halve the number of filters at each upscale until the minimum value is reached. A "
+             "value of 0.33 will be reduce the number of filters by a third until the minimum "
+             "value is reached etc.",
         datatype=float,
         min_max=(-.99, .99),
         rounding=2,
@@ -560,7 +604,7 @@ _DEFAULTS = dict(
         info="Faceswap Encoder only: The minumum number of filters to use for encoder "
              "convolutions. (i.e. the number of filters to use for the first encoder layer).",
         datatype=int,
-        min_max=(64, 2048),
+        min_max=(16, 2048),
         rounding=64,
         group="faceswap encoder configuration",
         fixed=True),
@@ -571,6 +615,14 @@ _DEFAULTS = dict(
         datatype=int,
         min_max=(256, 8192),
         rounding=128,
+        group="faceswap encoder configuration",
+        fixed=True),
+    fs_original_use_alt=dict(
+        default=False,
+        info="Use a slightly alternate version of the Faceswap Encoder."
+             "\n\tTrue - Use the alternate variation of the Faceswap Encoder."
+             "\n\tFalse - Use the original Faceswap Encoder.",
+        datatype=bool,
         group="faceswap encoder configuration",
         fixed=True),
 

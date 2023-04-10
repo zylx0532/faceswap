@@ -8,7 +8,7 @@ from lib.utils import get_backend
 from ._base import ModelBase, KerasModel
 
 if get_backend() == "amd":
-    from keras.initializers import RandomNormal
+    from keras.initializers import RandomNormal  # pylint:disable=no-name-in-module
     from keras.layers import Dense, Flatten, Input, LeakyReLU, Reshape, SpatialDropout2D
 else:
     # Ignore linting errors from Tensorflow's thoroughly broken import system
@@ -98,8 +98,8 @@ class Model(ModelBase):
     def decoder_b(self):
         """ Decoder for side B """
         kwargs = dict(kernel_size=5, kernel_initializer=self.kernel_initializer)
-        dense_dim = 384 if self.low_mem else self.config["complexity_decoder_b"]
-        decoder_complexity = 384 if self.low_mem else 512
+        decoder_complexity = 384 if self.low_mem else self.config["complexity_decoder_b"]
+        dense_dim = 384 if self.low_mem else 512
         decoder_shape = self.input_shape[0] // 16
         input_ = Input(shape=(decoder_shape, decoder_shape, dense_dim))
 

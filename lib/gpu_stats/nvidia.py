@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 """ Collects and returns Information on available Nvidia GPUs. """
-
+import os
 from typing import List
 
 import pynvml
 
 from lib.utils import FaceswapError
 
-from ._base import GPUStats
+from ._base import _GPUStats
 
 
-class NvidiaStats(GPUStats):
+class NvidiaStats(_GPUStats):
     """ Holds information and statistics about Nvidia GPU(s) available on the currently
     running system.
 
@@ -83,6 +83,24 @@ class NvidiaStats(GPUStats):
         self._log("debug", f"GPU Device count: {retval}")
         return retval
 
+    def _get_active_devices(self) -> List[int]:
+        """ Obtain the indices of active GPUs (those that have not been explicitly excluded by
+        CUDA_VISIBLE_DEVICES environment variable or explicitly excluded in the command line
+        arguments).
+
+        Returns
+        -------
+        list
+            The list of device indices that are available for Faceswap to use
+        """
+        devices = super()._get_active_devices()
+        env_devices = os.environ.get("CUDA_VISIBLE_DEVICES")
+        if env_devices:
+            new_devices = [int(i) for i in env_devices.split(",")]
+            devices = [idx for idx in devices if idx in new_devices]
+        self._log("debug", f"Active GPU Devices: {devices}")
+        return devices
+
     def _get_handles(self) -> list:
         """ Obtain the device handles for all connected Nvidia GPUs.
 
@@ -105,7 +123,7 @@ class NvidiaStats(GPUStats):
             The current GPU driver version
         """
         try:
-            driver = pynvml.nvmlSystemGetDriverVersion().decode("utf-8")
+            driver = pynvml.nvmlSystemGetDriverVersion()
         except pynvml.NVMLError as err:
             self._log("debug", f"Unable to obtain driver. Original error: {str(err)}")
             driver = "No Nvidia driver found"
@@ -120,12 +138,12 @@ class NvidiaStats(GPUStats):
         list
             The list of connected Nvidia GPU names
         """
-        names = [pynvml.nvmlDeviceGetName(handle).decode("utf-8")
+        names = [pynvml.nvmlDeviceGetName(handle)
                  for handle in self._handles]
         self._log("debug", f"GPU Devices: {names}")
         return names
 
-    def _get_vram(self) -> List[float]:
+    def _get_vram(self) -> List[int]:
         """ Obtain the VRAM in Megabytes for each connected Nvidia GPU as identified in
         :attr:`_handles`.
 
@@ -139,7 +157,7 @@ class NvidiaStats(GPUStats):
         self._log("debug", f"GPU VRAM: {vram}")
         return vram
 
-    def _get_free_vram(self) -> List[float]:
+    def _get_free_vram(self) -> List[int]:
         """ Obtain the amount of VRAM that is available, in Megabytes, for each connected Nvidia
         GPU.
 
@@ -149,7 +167,15 @@ class NvidiaStats(GPUStats):
              List of `float`s containing the amount of VRAM available, in Megabytes, for each
              connected GPU as corresponding to the values in :attr:`_handles
         """
+        is_initialized = self._is_initialized
+        if not is_initialized:
+            self._initialize()
+            self._handles = self._get_handles()
+
         vram = [pynvml.nvmlDeviceGetMemoryInfo(handle).free / (1024 * 1024)
                 for handle in self._handles]
+        if not is_initialized:
+            self._shutdown()
+
         self._log("debug", f"GPU VRAM free: {vram}")
         return vram

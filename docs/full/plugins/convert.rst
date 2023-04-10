@@ -10,22 +10,6 @@ The Convert Package handles the various plugins available for performing convers
 mask package
 ============
 
-mask._base module
------------------
-
-.. automodule:: plugins.convert.mask._base
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-mask.box_blend module
----------------------
-
-.. automodule:: plugins.convert.mask.box_blend
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 mask.mask_blend module
 ----------------------
 
@@ -57,6 +41,22 @@ writer.gif module
 -----------------
 
 .. automodule:: plugins.convert.writer.gif
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+writer.opencv module
+--------------------
+
+.. automodule:: plugins.convert.writer.opencv
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+writer.pillow module
+--------------------
+
+.. automodule:: plugins.convert.writer.pillow
    :members:
    :undoc-members:
    :show-inheritance:
